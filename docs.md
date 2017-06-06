@@ -489,6 +489,49 @@ a = Seq( ()=> Gibber.log('hi'), 1/2 )
 * _stop_:  If the sequencer is running, stop it.
 * _clear_: Stops sequencer and (hopefully) removes associated annotations.
 
+###Steps
+`Steps` creates a group of `Sequencer` objects; each sequencer is responsible for outputting a different MIDI note, with different velocities and rhythms as well. The `values` pattern of each sequencer in a `Steps` object can either be manipulated individually or they can all be manipulated as a group. 
+
+
+```javascript
+// target = tracks[0] /* gibberwoky.live */
+// target = devices[ 'drums' ] /* gibberwocky.max */
+target = channels[0] /* gibberwocky.midi */
+
+s = Steps({
+  36:'ffff',     // quarter notes at max velocity, midinote 36
+  38:'.c.c',     // alternating quarter notes, midinote 38
+  40:'9.69.69.', // eighth notes, midinote 40
+  42:'b9b3f',    // fifth notes, midinote 42
+}, target )
+
+// rotate midinote 38 only by 1 position each measure
+s[38].rotate.seq( 1,1 )
+
+// reverse all patterns every 4 measures
+s.reverse.seq( 1,4 )
+```
+
+The string argument for each MIDI note value accomplishes two tasks:
+
+1. It defines the `timings` pattern for each sequence by counting the number of elements in the string. For example, given a string of 8 values, the `timings` pattern value will be an 1/8th note.
+2. It defines a velocity for each note using hexadecimal notation, where `1` represents the lowest velocity and `f` represents the highest. A value of `.` means no note is played for that pattern position.
+
+In the example code given above, the sequencer created for MIDI note 36 would be equivalent to:
+
+```js
+target.midinote.seq( 36, 1/4 )
+target.velocity.seq( 127, 1/4 )
+``` 
+
+#### Methods
+Note that all the methods below can be applied to any `Steps` object or to an individual sequence in a `Steps` objects.
+
+* _reset_: Return all patterns to their original values, prior to any transformations. 
+* _reverse_: Reverse all the `values` patterns held by sequencers belonging to the `Steps` object.
+* _rotate_: Rotate all the `values` patterns held by sequencers belonging to the `Steps` object by a given amount
+* _shuffle_: Randomize the order of all values in each pattern. 
+
 # Common Functions
 
 ### rndi
@@ -839,6 +882,47 @@ Returns `a` if `a` is greater than `b`, otherwise returns 0
 **a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
 
 Returns `a` if `a` is less than `b`, otherwise returns 0
+
+## Miscellaneous
+### fade
+**length of fade** &nbsp; *number* &nbsp; The number of beats the fade should last  
+**start of fade** &nbsp; *number* &nbsp; The value the fade begins at  
+**end of fade** &nbsp; *number* &nbsp; The value the fade ends at.
+
+The `fade` ugen is basically a ramp that travels from one value to another over a given number of beats. This ugen is unique to gibberwocky in that after the fade completes the ugen disconnects itself and replaces itself with its final value. For example, given the following:
+
+```js
+channels[0].cc0( fade( 32, 0, 127 ) )
+```
+
+1. The fade would begin with an initial value of 0
+2. Over 32 beats the fade would rise to 127
+3. After 32 beats the fade would remove itself, and effectively call `channels[0].cc0( 127 )`
+
+### lfo
+**frequency** &nbsp;  *ugen* or *number* &nbsp; The frequency of the sine oscillator used in the lfo.  
+**amp** &nbsp; *ugen* or *number* &nbsp; The scalar applied to the lfo output.  
+**center** &nbsp; *ugen* or *number* &nbsp; The center value the lfo fluctuates around; alternatively named bias.
+
+The `lfo` is a composite of `cycle`, `add`, and `mul` ugens. Unlike most other modulation sources, with the `lfo` ugen
+you directly sequence the `frequency`, `amp`, and `center` properties instead of referring to them using index values.
+
+```js
+// gibberwocky.max
+eleffoh = lfo( 2, 100, 200 )
+devices['drums']['kick-tuning']( eleffoh )
+
+eleffoh.frequency.seq( [.5,1,2,4,8], 1/2 )
+```
+###beats
+**length** &nbsp; *number* &nbsp; The number of beats to ramp over.
+
+`beats()` creates a upward ramp that cycles every `n` beats, where each beat is typically a quarter note. You can easily create a downward ramp by combining `beats` with `sub`:
+
+```js
+// gibberwocky.live
+tracks[0].devices[0]['Global Transpose']( sub( 1, beats(4) ) )
+```
 
 ## Range
 
