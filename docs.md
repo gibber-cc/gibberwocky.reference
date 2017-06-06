@@ -116,9 +116,23 @@ tracks[0].sends[0]( beats( 2 ) )
 
 
 #Gibberwocky.Max
-Two global arrays and one constructor are the primary ways of interacting with gibberwocky.max. To use gibberwocky.max, you must first instantitate the gibberwocky.max object inside of your Max patch. This object has a single inlet, which is used to open the gibberwocky live-coding interface, and a number of outlets. The first outlet ouputs messages sent from objects created using the [Namespace](#gibberwocky.max-namespace) constructor. The remaining outlets output gen~ graphs and are accessed via the global `signals` array. Finally, any Max object in a patch that also contains a gibberwocky object and has a scripting name assinged to it can be accessed through the global `params` array.
+Two global arrays and one constructor are the primary ways of interacting with gibberwocky.max. To use gibberwocky.max, you must first instantitate the gibberwocky.max object inside of your Max patch. This object has a single inlet, which is used to open the gibberwocky live-coding interface, and a number of outlets. The first outlet ouputs messages sent from objects created using the [Namespace](#gibberwocky.max-namespace) constructor. The remaining outlets output gen~ graphs and are accessed via the global `signals` array. Any Max object in a patch that containing a gibberwocky object and has a scripting name assinged to it can be accessed through the global `params` array.Finally, all Max for Live devices in a patch can be accessed via the global `devices` array.
 
-The combination of these three entry points provides a great deal of flexibility when integrating gibberwocky with your Max patch. You can create complex routing schemes and send messages as needed, you can create complex signal graphs using gen~ expressions, and you can easily target any object with a scripting name and send it messages.
+The combination of these four entry points provides a great deal of flexibility when integrating gibberwocky with your Max patch. You can create complex routing schemes and send messages as needed, you can create complex signal graphs using gen~ expressions, and you can easily target any object with a scripting name and send it messages.
+
+### Devices 
+There is a global `devices` array that provides access to all the Max for Live devices in any patcher containing a gibberwocky object. Note messages can be addressed directly to these devices without requiring any patching; individual properties of these devices can also be easily messaged.
+
+```javascript
+// The examples below assume that an instance of Analgue Drums is present in a Max
+// patch, along with a gibberwocky object.
+
+// quarter-note kick drums
+devices['Analogue Drums'].midinote.seq( 36, 1/4 )
+
+// sequence the 'kick-sweep' parameter of an analogue drums instance
+devices['Analogue drums']['kick-sweep'].seq( [0, 16, 32, 64, 128], 1 )
+```
 
 ### Namespace
 The `namespace` constructor lets you create a messages that will be outputted from the first outlet of the gibberwocky.max object, with a prefix of your choice. For example, given:
@@ -156,7 +170,7 @@ In addition to using your own words for namespace routing, each namespace has se
 
 
 ### Signals
-There is a global `signals` array that provides access to all the outlets in the gibberwocky.max object except for the first one (which is used for messaging). As the name suggests, these outlets are all used to output audio signals created using gen~ graphs, as opposed to irregular messages. For a detailed reference of ugens available, please see the [gen~ reference](https://docs.cycling74.com/max7/vignettes/gen~_operators). gen~ graphs can also be sequenced; see the gen~ modulation tutorial for more information.
+There is a global `signals` array that provides access to all the outlets in the gibberwocky.max object except for the first one (which is used for messaging). As the name suggests, these outlets are all used to output audio signals created using gen~ graphs, as opposed to irregular messages.    gen~ graphs can also be sequenced; see the gen~ modulation tutorial for more information.
 
 ```javascript
 // send a sine oscillator out the second outlet
@@ -362,7 +376,7 @@ list of possible output values for the pattern.
 * _scale_ ( Number ): Multiply all numerical values in the pattern by argument. If a pattern consists of an array of chords, each member of each chord will be modified. For example [[0,2,4], [1,3,5]] scaled by 2 becomes [[0,4,8], [2,6,10]]
 * _shuffle_: Randomize the order of values found in the `pattern.values` array.
 * _flip_: Change the positions of pattern members so that the position of the highest member becomes the position of the lowest member, the position of the second highest becomes the position of the second lowest etc.
-* _invert: Similar to the technique from serialist compositions. Assume that the zero-index member of the pattern is our axis. Flip all other pattern members to the other side of the access. Thus, a member that is two higher than the zero-index member now becomes two lower.
+* _invert_: Similar to the technique from serialist compositions. Assume that the zero-index member of the pattern is our axis. Flip all other pattern members to the other side of the access. Thus, a member that is two higher than the zero-index member now becomes two lower.
 * _rotate_( Int ): Shift the positions of all pattern members by the argument. For example, a pattern of `[0,1,2,3]` that is rotated by 1 becomes `[3,0,1,2]`.
 
 ###Scale
@@ -513,3 +527,385 @@ Logs a message to the console in the gibberwocky sidebar, in addition to the dev
 
 #### Arguments
 * _text_ : String or Number. The text that should be printed to gibberwocky's console.
+
+# Modulation
+
+## Arithmetic
+
+### add
+**args** &nbsp;  *ugens* or *numbers* &nbsp; 
+
+```js
+// midi
+channels[0].cc0( add( .5, mul( cycle(.25), .5 ) ) )
+
+// live
+tracks[0].devices[0]['Volume']( add( .5, mul( cycle(.25), .5 ) ) )
+
+// max
+signals[0]( add( .5, mul( cycle(.25), .5 ) ) 
+```
+
+### sub
+**args** &nbsp;  *ugens* or *numbers* &nbsp;
+
+```js
+// midi
+channels[0].cc0( sub( .5, mul( cycle(.25), .5 ) ) )
+
+// live
+tracks[0].devices[0]['Volume']( sub( .5, mul( cycle(.25), .5 ) ) )
+
+// max
+signals[0]( sub( .5, mul( cycle(.25), .5 ) ) 
+```
+
+### mul
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers to be multiplied. 
+
+Multiples two number or ugens together.
+
+```js
+// midi
+channels[0].cc0( sub( .5, mul( cycle(.25), .5 ) ) )
+
+// live
+tracks[0].devices[0]['Volume']( sub( .5, mul( cycle(.25), .5 ) ) )
+
+// max
+signals[0]( sub( .5, mul( cycle(.25), .5 ) ) 
+```
+
+### div
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Divides ugen or number *a* by ugen or number *b*.
+
+```js
+// midi
+channels[0].cc0( sub( .5, div( cycle(.25), 2 ) ) )
+
+// live
+tracks[0].devices[0]['Volume']( sub( .5, div( cycle(.25), 2 ) ) )
+
+// max
+signals[0]( sub( .5, div( cycle(.25), 2 ) ) 
+```
+
+### mod
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Divides ugen or number *a* by ugen or number *b* and returns the remainder.
+
+```js
+// midi
+channels[0].cc0( mod( beats(2), lfo( .5 ) ) )
+
+// live
+tracks[0].devices[0]['Volume']( mod( beats(2), lfo( .5 ) ) )
+
+// max
+signals[0]( mod( beats(2), lfo( .5 ) ) )
+```
+
+## Buffer
+
+### cycle
+**frequency** &nbsp;  *ugen* or *number* &nbsp; Ugen or number. 
+
+Outputs a sine wave via wavetable lookup / interpolation. 
+
+```javascript
+// midi
+channels[0].cc0( cycle(4 )
+
+// live
+tracks[0].devices[0]['Volume']( cycle(4) )
+
+// max
+signals[0]( cycle(4) )
+```
+
+### data
+**dataArray** &nbsp;  *Array* &nbsp; A pre-defined array of numbers to use.   
+**dataLength** &nbsp; *integer* &nbsp; The length of a new underlying array to be created.  
+
+Data objects serve as containers for storing numbers; these numbers can be read using calls to `peek()` and the data object can be written to using calls to `poke()`. The constructor can be called with two different argumensts. If a *dataArray* is passed as the first argument, this array becomes the data object's underlying data source. If a *dataLength* integer is passed, a Float32Array is created using the provided length.
+
+```js
+// create a sliding, interpolated frequency signal running between four values
+d = data( [440,880,220,1320] )
+p = peek( d, phasor(.1) )
+c = cycle( p ) // feed sine osc frequency with signal
+
+// midi
+channels[0].cc0( c )
+
+// live
+tracks[0].devices[0]['Volume']( c )
+
+// max
+signals[0]( c )
+```
+
+### peek
+**dataUgen** &nbsp;  *data* &nbsp; A `data` ugen to read values from.  
+**index** &nbsp; *integer* &nbsp; The index to be read.  
+
+Peek reads from an input data object. It can index the data object using on of two *modes*. 
+
+```js
+// create a sliding, interpolated frequency signal running between four values
+d = data( [440,880,220,1320] )
+p = peek( d, phasor(.1) )
+c = cycle( p ) // feed sine osc frequency with signal
+
+// midi
+channels[0].cc0( c )
+
+// live
+tracks[0].devices[0]['Volume']( c )
+
+// max
+signals[0]( c )
+```
+
+## Envelopes
+
+
+### t60
+**a** &nbsp;  *ugen*  Number of samples to fade 1 by 60 dB.
+
+`t60` provides a multiplier that, when applied to a signal every sample, fades it by 60db (at which point it is effectively inaudible). Although the example below shows `t60` in action, it would actually be much more efficient to calculate t60 once since the time used (88200) is static. 
+
+```javascript
+lastsample = ssd(1)
+
+// update fade with previous output * t60
+// we could also use: Math.exp( -6.907755278921 / 88200 ) instead of t60( 88200 )
+fade = mul( lastsample.out, t60( 88200 ) )
+
+// record current value of fade
+lastsample.in( fade )
+
+play( mul( lastsample.out, cycle( 330 ) ) ) 
+```
+
+## Filter
+
+### dcblock
+**a** &nbsp;  *ugen*  Signal.
+
+`dcblock()` remove DC offset from an input signal using a one-pole high-pass filter. 
+
+### slide
+**a** &nbsp;  *ugen*  Signal.
+**time** &nbsp; *integer* Length of slide in samples.
+
+`slide()` is a logarithmically scaled low-pass filter to smooth discontinuities between values. It is especially useful to make continuous transitions from discrete events; for example, sliding from one note frequency to the next. The second argument to `slide` determines the length of transitions. A value of 100 means that a transition in a signal will take 100x longer than normal; a value of 1 causes the filter to have no effect.
+
+## Integrator
+
+### accum
+**increment** &nbsp; *ugen* or *number*  (default = 1) The amount to increase the accumulator's internal value by on each sample  
+**reset**  &nbsp; *ugen* or *number* (default = 0) When `reset` has a value of 1, the accumulator will reset its internal value to 0.  
+
+
+`accum()` is used to increment a stored value between a provided range that defaults to {0,1}. If the accumulator values passes its maximum, it wraps. `accum()` is very similar to the `counter` ugen, but is slightly more efficient. 
+
+### counter
+**increment** &nbsp; *ugen* or *number*  (default = 1) The amount to increase the counter's internal value by on each sample  
+**min** &nbsp; *ugen* or *number* (default = 0) The minimum value of the accumulator  
+**max** &nbsp; *ugen* or *number* (default = 1) The maximum value of the accumulator  
+**reset**  &nbsp; *ugen* or *number* (default = 0) When `reset` has a value of 1, the counter will reset its internal value to 0.  
+
+
+`counter()` is used to increment a stored value between a provided range that defaults to {0,1}. If the counter's interval value passes either range boundary, it is wrapped. `counter()` is very similar to the `accum` ugen, but is slightly less efficient. 
+
+## Logic
+
+### not 
+**a** &nbsp;  *ugen* or *number* Input signal
+ 
+An input of 0 returns 1 while all other values return 0.
+
+```javascript
+y = x !== 0 ? 0 : 1
+```
+
+### bool 
+**a** &nbsp;  *ugen* or *number* Input signal
+ 
+Converts signals to either 0 or 1. If the input signal does not equal 0 then output is 1; if input == 0 then output 0. Roughly equivalent to the following pseudocode:
+
+```javascript
+y = x !== 0 ? 1 : 0
+```
+
+### and
+**a** &nbsp;  *ugen* or *number* Input signal
+**b** &nbsp;  *ugen* or *number* Input signal
+
+Returns 1 if both inputs do not equal 0. 
+
+## Numeric 
+
+### round
+**a** &nbsp;  *ugen* or *number*
+
+Rounds input up or down to nearest integer.
+
+### floor
+**a** &nbsp;  *ugen* or *number*
+
+Rounds input down to nearest integer by performing a bitwise or with 0.
+
+### ceil
+**a** &nbsp;  *ugen* or *number*
+
+Rounds input up to nearest integer.
+
+### sign
+**a** &nbsp;  *ugen* or *number*
+
+Returns 1 for positive input and -1 for negative input. Zero returns itself.
+
+## Trigonometry
+
+### sin
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the sine of the input (interepreted as radians).
+
+### cos
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the cosine of the input (interpreted as radians).
+
+### tan
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the tangent of the input (interpreted as radians).
+
+### asin
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the arcsine of the input in radians using Javascript's `Math.asin()` function
+
+### acos
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the arccosine of the input in radians.
+
+### atan
+**a** &nbsp;  *ugen* or *number*
+
+Calculates the arctangent of the input in radians.
+
+## Comparison
+
+### eq
+**a** &nbsp;  *ugen* or *number* Input signal
+**b** &nbsp;  *ugen* or *number* Input signal
+
+Returns 1 if two inputs are equal, otherwise returns 0.
+
+### max
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns whichever value is greater.
+
+### min
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns whichever value is lesser.
+
+### gt
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns 1 if `a` is greater than `b`, otherwise returns 0
+
+### lt
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns 1 if `a` is less than `b`, otherwise returns 0
+
+### gtp
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns `a` if `a` is greater than `b`, otherwise returns 0
+
+### ltp
+**a,b** &nbsp;  *ugen* or *number* &nbsp; Ugens or numbers. 
+
+Returns `a` if `a` is less than `b`, otherwise returns 0
+
+## Range
+
+### clamp
+**a** &nbsp;  *ugen* or *number* &nbsp; Input signal to clamp.  
+**min** &nbsp; *ugen* or *number* &nbsp; Signal or number that sets minimum of range to clamp input to.  
+**max** &nbsp; *ugen* or *number* &nbsp; Signal or number that sets maximum of range to clamp input to.  
+
+Clamp constricts an input `a` to a particular range. If input `a` exceeds the maximum, the maximum is returned. If input `b` is less than the minimum, the minimum is returned.
+
+### fold
+**a** &nbsp;  *ugen* or *number*  : Input signal to fold.  
+**min** &nbsp; *ugen* or *number* : Signal or number that sets minimum of range to fold input to.  
+**max** &nbsp; *ugen* or *number* : Signal or number that sets maximum of range to fold input to.  
+
+Fold constricts an input `a` to a particular range. Given a range of {0,1} and an input signal of {.8,.9,1,1.1,1.2}, fold will return {.8,.9,1,.9,.8}.
+
+### wrap
+**a** &nbsp;  *ugen* or *number*  : Input signal to fold.  
+**min** &nbsp; *ugen* or *number* : Signal or number that sets minimum of range to fold input to.  
+**max** &nbsp; *ugen* or *number* : Signal or number that sets maximum of range to fold input to.  
+
+Wrap constricts an input `a` to a particular range. Given a range of {0,1} and an input signal of {.8,.9,1,1.1,1.2}, fold will return {.8,.9,0,.1,.2}.
+
+## Routing
+
+### gate
+**control** &nbsp;  *ugen or number* &nbsp; Selects the output index that the input signal travels through.  
+**input** &nbsp; *integer* &nbsp; Signal that is passed through one of various outlets.   
+
+
+`gate()` routes signal from one of its outputs according to an input *control* signal, which defines an index for output. The various outputs are all stored in the `mygate.outputs` array. The code example to the right shows a signal alternating between left and right channels using the `gate` ugen.
+ 
+### selector
+**control** &nbsp; *ugen or number* &nbsp; Determines which input signal is passed to the ugen's output.  
+**...inputs** &nbsp; *ugens or numbers* &nbsp; After the `control` input, an arbitrary number of inputs can be passed to the selector constructor.
+
+Selector is basically the same as `switch()` but allows you to have an arbitrary number of inputs to choose between.
+
+### switch
+**control** &nbsp; *ugen or number* &nbsp; When `control` === 1, output `a`; else output `b`.  
+**a** &nbsp; *ugen or number* &nbsp; Signal that is available to output.  
+**b** &nbsp; *ugen or number* &nbsp; Signal that is available to ouput.
+
+A control input determines which of two additional inputs is passed to the output. Note that in the genish.js playground this is globally referred to as the `ternary` ugen, so as not to conflict with JavaScript's `switch` control structure.  
+
+## Waveforms
+
+### cycle
+**a** &nbsp;  *ugen* or *number* &nbsp; Frequency. 
+
+Cycle creates a sine oscillator running at a provided frequency. The oscillator runs via an interpolated wavetable lookup.
+
+### noise
+Noise outputs a pseudo-random signal between {0,1}. 
+
+### phasor
+**frequency** &nbsp;  *ugen* or *number* &nbsp; Frequency.
+
+A phasor accumulates phase, as determined by its frequency, and wraps between 0 and 1. This creates a sawtooth wave, but with a dc offset of 1 (no negative numbers). If a range of {-1,1} is needed you can use an `accum()` object with the increment `1/gen.samplerate * frequency` and the desired min/max properties.
+
+### train
+**frequency** &nbsp;  *ugen* or *number* &nbsp; Frequency.  
+**pulsewidth** &nbsp;  *ugen* or *number* &nbsp;(default .5) Pulsewidth. A pulsewidth of .5 means the oscillator will spend 50% of its time outputting 1 and 50% of its time outputting 0. A pulsewidth of .2 means the oscillator spends 20% of its time outputting 1 and 80% outputting 0.  
+ 
+`train()` creates a pulse train driven by an input frequency signal and input pulsewidth signal. The pulse train is created using the genish expression displayed at right.
+
+```javascript
+pulseTrain = lt( accum( div( inputFrequency, sampleRate ) ), inputPulsewidth )
+``` 
